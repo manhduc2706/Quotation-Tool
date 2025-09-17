@@ -1,9 +1,13 @@
+import { Types } from "mongoose";
 import { CostServerModel, ICostServer } from "../models/CostServer.model";
 
 export interface CreateCostServer {
   name: string;
   unitPrice: number;
   vatRate: number;
+  description?: string;
+  quantity?: number;
+  fileId: Types.ObjectId;
 }
 
 export class CostServerRepository {
@@ -51,7 +55,9 @@ export class CostServerRepository {
       name: data.name,
       unitPrice: data.unitPrice,
       vatRate: data.vatRate,
+      description: data.description,
       totalAmount,
+      fileId: data.fileId,
     });
 
     return await newServer.save();

@@ -7,6 +7,8 @@ export interface ICostServer {
   vatRate: number;
   quantity?: number;
   totalAmount: number;
+  description?: string;
+  fileId?: Types.ObjectId;
 }
 
 const CostServerSchema = new Schema<ICostServer>({
@@ -15,6 +17,12 @@ const CostServerSchema = new Schema<ICostServer>({
   vatRate: { type: Number, required: true },
   quantity: { type: Number, required: false },
   totalAmount: { type: Number, required: true },
+  description: { type: String, required: false },
+  fileId: {
+    type: Schema.Types.ObjectId,
+    required: false,
+    ref: "File",
+  },
 });
 
 export const CostServerModel = model<ICostServer>(

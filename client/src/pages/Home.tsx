@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ServiceCheckbox from "../components/ServiceCheckbox";
-import { ServiceOption } from "../types";
+import { SelectedFeature, ServiceOption } from "../types";
 import { serviceOptionsApi } from "../services/serviceOptions";
 import { quotationApi } from "../services/quotationApi";
 import UserInput from "../components/UserInput";
@@ -11,11 +11,8 @@ import FeatureInput from "../components/FeatureInput";
 import IconD from "../components/ui/iconD";
 import IconCalculator from "../components/ui/iconCalculator";
 import CameraCountInput from "../components/CameraCount";
-
-export interface SelectedFeature {
-  feature: string;
-  pointCount: number;
-}
+import { DownloadExcelButton } from "../components/DownloadExcel";
+import { excelApi } from "../services/excelApi";
 
 export default function Home() {
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
@@ -29,6 +26,7 @@ export default function Home() {
   const [pointCount, setPointCount] = useState<number | null>(null);
   const [cameraCount, setCameraCount] = useState<number | null>(null);
   const [quotationResult, setQuotationResult] = useState<any>(null);
+  const [excelResult, setExcelResult] = useState<any>(null);
   const [selectedFeatures, setSelectedFeatures] = useState<SelectedFeature[]>(
     []
   );
@@ -57,18 +55,6 @@ export default function Home() {
 
   const handleServiceChange = (optionId: string) => {
     setSelectedService(optionId); // Chỉ lưu một dịch vụ được chọn
-  };
-
-  const handleUserCountChange = (count: number) => {
-    setUserCount(count);
-  };
-
-  const handlePointCountChange = (count: number) => {
-    setPointCount(count);
-  };
-
-  const handleCameraCountChange = (count: number) => {
-    setCameraCount(count);
   };
 
   const selectedOption = serviceOptions.find(
@@ -135,10 +121,15 @@ export default function Home() {
         iconKey: selectedOption?.iconKey,
       };
 
-      const result = await quotationApi.createQuotation({
+      const result = await quotationApi({
         ...quotationData,
         pointCount: totalPointCount!,
       });
+      // const resultExcel = await excelApi({
+      //   ...quotationData,
+      //   pointCount: totalPointCount!,
+      // });
+      setExcelResult(quotationData);
       setQuotationResult(result);
     } catch (error) {
       console.error("Error creating quotation:", error);
@@ -191,9 +182,9 @@ export default function Home() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-[1050px] mx-auto space-y-6">
         {/* Ô cấu hình báo giá */}
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white shadow p-6">
           <div className="mb-6">
             <div className="flex flex-row items-center">
               <IconD />
@@ -252,7 +243,17 @@ export default function Home() {
                       infrastructure={infrastructure}
                       fixedUserLimits={
                         infrastructure === "OnPremise"
-                          ? [100, 200, 500, 1000, 1500, 2000, 3000, 5000]
+                          ? [
+                              100,
+                              200,
+                              500,
+                              1000,
+                              1500,
+                              2000,
+                              3000,
+                              5000,
+                              ">5000",
+                            ]
                           : null
                       }
                       onValueChange={setUserCount}
@@ -305,8 +306,24 @@ export default function Home() {
 
         {/* Ô hiển thị báo giá */}
         {quotationResult && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <ShowQuotation quotation={quotationResult} />
+          <div className="min-h-screen max-w-[1280px] bg-gray-50 border shadow">
+            <div className="flex flex-col pb-2">
+              <div className="bg-[#0F4FAF] text-white p-4">
+                <div className="flex flex-row items-center gap-2">
+                  <IconCalculator />
+                  <h2 className="text-2xl font-bold">Báo Giá Chi Tiết</h2>
+                </div>
+                <p className="text-sm">
+                  Bảng giá chi tiết cho dịch vụ hệ thống C-CAM
+                </p>
+              </div>
+            </div>
+            <div className="bg-white">
+              <ShowQuotation quotation={quotationResult} />
+              <div className="flex justify-end p-4 mb-4">
+                <DownloadExcelButton quotationData={excelResult} />
+              </div>
+            </div>
           </div>
         )}
       </div>

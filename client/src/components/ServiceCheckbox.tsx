@@ -27,12 +27,12 @@ export default function ServiceCheckbox({
 
   return (
     <label
-      className={`flex items-center space-x-3 cursor-pointer w-[269px] h-[50px] border rounded-md p-4 transition
+      className={`flex items-center space-x-3 cursor-pointer w-[320px] h-[50px] border rounded-md p-4 transition
         ${isChecked ? "border-[#0F4FAF] bg-blue-50" : "border-gray-300"}
       `}
     >
       <input
-        type="radio" // Đổi từ checkbox sang radio để đảm bảo chỉ chọn một
+        type="radio" 
         name="serviceOption"
         checked={isChecked}
         onChange={handleChange}

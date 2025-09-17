@@ -5,7 +5,7 @@ import licenseRoutes from "./licenseRoutes";
 import quotationRoutes from "./quotationRoutes";
 import itemDetailRoutes from "./itemDetailRoutes";
 import costServerRoutes from "./costServerRoutes";
-import excelFormRoutes from "./excelFormRoutes";
+import fileRoutes from "./fileRoutes";
 
 const router = Router();
 
@@ -16,6 +16,6 @@ router.use("/costServer", costServerRoutes)
 router.use("/licenses", licenseRoutes);
 router.use("/itemDetail", itemDetailRoutes);
 router.use("/quotations", quotationRoutes);
-router.use("excelForm", excelFormRoutes)
+router.use("/fileImage", fileRoutes);
 
 export default router;

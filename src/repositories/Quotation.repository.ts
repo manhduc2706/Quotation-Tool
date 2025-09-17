@@ -12,64 +12,13 @@ import {
 } from "../models/License.model";
 import { IItemDetail, ItemDetail } from "../models/ItemDetail";
 import { CostServerModel } from "../models/CostServer.model";
-
-// Interface cho quotation (có pointCount)
-export interface SelectedFeature {
-  feature: string;
-  pointCount: number;
-}
-
-export interface CreateQuotationData {
-  deploymentType: "Cloud" | "OnPremise";
-  categoryId: Types.ObjectId;
-  userCount?: number;
-  pointCount?: number;
-  cameraCount?: number;
-  selectedFeatures?: SelectedFeature[]; // Cập nhật type
-  iconKey: string;
-}
-
-export interface QuotationItemResponse {
-  itemDetailId: Types.ObjectId;
-  name: string;
-  selectedFeatures?: SelectedFeature[];
-  unitPrice: number;
-  quantity: number;
-  vatRate: number;
-  totalAmount: number;
-  category?: string;
-  description: string;
-}
-
-export interface CostServerResponse {
-  name: string;
-  unitPrice: number;
-  quantity: number;
-  vatRate: number;
-  totalAmount: number;
-  description: string;
-}
-
-export interface OutPutQuotationData {
-  quotationId: Types.ObjectId;
-  deploymentType: "Cloud" | "OnPremise";
-  userCount: number | null;
-  pointCount: number | null;
-  cameraCount: number | null;
-  iconKey: string;
-  costServers: CostServerResponse[];
-  devices: QuotationItemResponse[];
-  licenses: QuotationItemResponse[];
-  selectedFeatures?: SelectedFeature[];
-  summary: {
-    deviceTotal: number;
-    licenseTotal: number;
-    costServerTotal: number;
-    deploymentCost: number;
-    grandTotal: number;
-  };
-  // createdAt: Date;
-}
+import { ExcelForm } from "../models/ExcelForm.model";
+import {
+  CostServerResponse,
+  CreateQuotationData,
+  OutPutQuotationData,
+  QuotationItemResponse,
+} from "../types/quotation";
 
 export class QuotationRepository {
   private getUserTier(
@@ -81,8 +30,7 @@ export class QuotationRepository {
       return { userLimit: userCount };
     } else {
       // Cloud: trả về khoảng user
-      if (userCount <= 100) return { userLimit: { min: 1, max: 100 } };
-      if (userCount <= 300) return { userLimit: { min: 101, max: 300 } };
+      if (userCount <= 300) return { userLimit: { min: 1, max: 300 } };
       if (userCount <= 500) return { userLimit: { min: 301, max: 500 } };
       if (userCount <= 1000) return { userLimit: { min: 501, max: 1000 } };
       if (userCount <= 1500) return { userLimit: { min: 1001, max: 1500 } };
@@ -207,10 +155,16 @@ export class QuotationRepository {
           throw new Error("cameraCount không được để trống khi chọn Cloud");
         }
 
-        deviceTotal = devices.reduce(
-          (acc: number, d: any) => acc + num(d.totalAmount) * num(cameraCount),
-          0
-        );
+        deviceTotal = devices.reduce((acc: number, device: any) => {
+          const quantity =
+            data.iconKey === "securityAlert"
+              ? device.deviceType === "AI Box"
+                ? Math.floor(num(data.cameraCount) / 2) +
+                  (num(data.cameraCount) % 2 !== 0 ? 1 : 0)
+                : num(data.cameraCount) // Nếu không, dùng cameraCount
+              : num(data.pointCount); // Nếu không phải securityAlert, dùng pointCount
+          return acc + num(device.totalAmount) * num(quantity);
+        }, 0);
 
         data.selectedFeatures.forEach((sf) => {
           const matchingLicenses = licenses.filter(
@@ -247,7 +201,7 @@ export class QuotationRepository {
           const perUser =
             num(id.unitPrice) +
             num(costServer.unitPrice) * (1 + num(id.vatRate / 100));
-          return acc + perUser * num(data.userCount) * num(pointCount);
+          return acc + perUser * num(data.userCount);
         }, 0);
       }
     } else {
@@ -259,10 +213,16 @@ export class QuotationRepository {
           throw new Error("cameraCount không được để trống khi chọn OnPremise");
         }
 
-        deviceTotal = devices.reduce(
-          (acc: number, d: any) => acc + num(d.totalAmount) * num(cameraCount),
-          0
-        );
+        deviceTotal = devices.reduce((acc: number, device: any) => {
+          const quantity =
+            data.iconKey === "securityAlert"
+              ? device.deviceType === "AI Box"
+                ? Math.floor(num(data.cameraCount) / 2) +
+                  (num(data.cameraCount) % 2 !== 0 ? 1 : 0)
+                : num(data.cameraCount) // Nếu không, dùng cameraCount
+              : num(data.pointCount); // Nếu không phải securityAlert, dùng pointCount
+          return acc + num(device.totalAmount) * num(quantity);
+        }, 0);
 
         data.selectedFeatures.forEach((sf) => {
           const matchingLicenses = licenses.filter(
@@ -299,20 +259,126 @@ export class QuotationRepository {
           const perUser =
             num(id.unitPrice) +
             num(costServer.unitPrice) * (1 + num(costServer.vatRate / 100));
-          return acc + perUser * num(pointCount);
+          return acc + perUser;
         }, 0);
       }
     }
 
     const deploymentCost =
-      num(data.pointCount) *
-      (data.iconKey === "securityAlert" ? 1_000_000 : 5_000_000);
+      data.iconKey === "securityAlert"
+        ? num((data.cameraCount || 0) * 1000000)
+        : num((data.pointCount || 0) * 5000000);
 
-    const costServerTotal = costServer.unitPrice * (1 + costServer.vatRate);
+    const costServerTotal =
+      costServer.unitPrice * (1 + costServer.vatRate / 100);
 
     const grandTotal = deviceTotal + licenseTotal + deploymentCost;
 
-    // 6) Lưu Quotation
+    // 6) Format response
+
+    const licenseResponses: QuotationItemResponse[] = licenses.map(
+      (license: any) => {
+        const matchedFeature = data.selectedFeatures?.find((sf) =>
+          license.selectedFeatures?.some(
+            (dsf: any) => dsf.feature === sf.feature
+          )
+        );
+        const quantity = num(matchedFeature ? matchedFeature.pointCount : 1);
+        return {
+          itemDetailId: license.itemDetailId._id,
+          name: license.itemDetailId?.name,
+          selectedFeatures: license.selectedFeatures ?? [],
+          unitPrice: num(license.itemDetailId?.unitPrice),
+          pointCount: matchedFeature ? matchedFeature.pointCount : 1,
+          vendor: license.itemDetailId.vendor,
+          origin: license.itemDetailId.origin,
+          fileId: license.itemDetailId.fileId,
+          quantity,
+          priceRate:
+            data.deploymentType === "Cloud"
+              ? num(
+                  (license.itemDetailId?.unitPrice *
+                    license.itemDetailId?.vatRate *
+                    quantity) /
+                    100
+                )
+              : null,
+          vatRate: num(license.itemDetailId?.vatRate),
+          totalAmount: num(license.totalAmount),
+          category: license.categoryId?.name,
+          description: license.itemDetailId?.description,
+          note: license.itemDetailId?.note,
+        };
+      }
+    );
+
+    const deviceResponses: QuotationItemResponse[] = devices.map(
+      (device: any) => {
+        const quantity =
+          data.iconKey === "securityAlert"
+            ? device.deviceType === "AI Box"
+              ? Math.floor(num(data.cameraCount) / 2) +
+                (num(data.cameraCount) % 2 !== 0 ? 1 : 0)
+              : num(data.cameraCount) // Nếu không, dùng cameraCount
+            : num(data.pointCount); // Nếu không phải securityAlert, dùng pointCount
+
+        return {
+          itemDetailId: device.itemDetailId._id,
+          fileId: device.itemDetailId.fileId,
+          name: device.itemDetailId?.name,
+          deviceType: device.deviceType,
+          selectedFeatures: device.selectedFeatures ?? [],
+          vendor: device.itemDetailId.vendor,
+          origin: device.itemDetailId.origin,
+          unitPrice: num(device.itemDetailId?.unitPrice),
+          quantity,
+          priceRate: num(
+            (device.itemDetailId?.unitPrice *
+              device.itemDetailId?.vatRate *
+              quantity) /
+              100
+          ),
+          vatRate: num(device.itemDetailId?.vatRate),
+          cameraCount: data.cameraCount,
+          totalAmount: num(device.totalAmount),
+          category: device.categoryId?.name,
+          description: device.itemDetailId?.description,
+          note: device.itemDetailId?.note,
+        };
+      }
+    );
+
+    const costServerResponses: CostServerResponse[] = costServers.map(
+      (costServer: any) => {
+        // Lấy tổng quantity từ licenseResponses
+        const totalLicenseQuantity = licenseResponses.reduce(
+          (acc, license) => acc + num(license.quantity),
+          0
+        );
+        const quantity =
+          data.iconKey === "securityAlert" ? 1 : totalLicenseQuantity;
+
+        return {
+          fileId: costServer.fileId,
+          name: costServer.name,
+          unitPrice: num(costServer.unitPrice),
+          quantity,
+          priceRate:
+            data.deploymentType === "OnPremise"
+              ? num(
+                  (costServer.unitPrice * costServer.vatRate * quantity) / 100
+                )
+              : null,
+          vatRate: num(costServer.vatRate),
+          // Nếu iconKey là "securityAlert", quantity = 1, ngược lại dùng totalLicenseQuantity
+          totalAmount: num(costServer.totalAmount) * quantity,
+          description: costServer.description,
+          note: costServer.itemDetailId?.note,
+        };
+      }
+    );
+
+    // 7) Lưu Quotation
     const newQuotation = new QuotationModel({
       deploymentType: data.deploymentType,
       categoryId: data.categoryId,
@@ -323,29 +389,103 @@ export class QuotationRepository {
       items: [
         {
           categoryId: data.categoryId,
-          devices: devices.map((device: any) => ({
-            itemDetailId: device.itemDetailId,
-            categoryId: device.categoryId,
-            itemType: device.itemType,
-            totalAmount: num(device.totalAmount),
-            description: device.description,
-          })),
-          licenses: licenses.map((license: any) => ({
-            itemDetailId: license.itemDetailId,
-            categoryId: license.categoryId,
-            itemType: license.itemType,
-            userLimit: license.userLimit,
-            costServer: num(license.costServer),
-            totalAmount: num(license.totalAmount),
-            description: license.description,
-          })),
-          costServers: costServers.map((costServer: any) => ({
-            name: costServer.name,
-            unitPrice: num(costServer.unitPrice),
-            vatRate: num(costServer.vatRate),
-            totalAmount: num(costServer.totalAmount),
-            description: costServer.description,
-          })),
+          devices: devices.map((device: any) => {
+            const quantity =
+              data.iconKey === "securityAlert"
+                ? device.deviceType === "AI Box"
+                  ? Math.floor(num(data.cameraCount) / 2) +
+                    (num(data.cameraCount) % 2 !== 0 ? 1 : 0)
+                  : num(data.cameraCount) // Nếu không, dùng cameraCount
+                : num(data.pointCount); // Nếu không phải securityAlert, dùng pointCount
+
+            return {
+              itemDetailId: device.itemDetailId._id,
+              fileId: device.itemDetailId.fileId,
+              name: device.itemDetailId?.name,
+              deviceType: device.deviceType,
+              selectedFeatures: device.selectedFeatures ?? [],
+              vendor: device.itemDetailId.vendor,
+              origin: device.itemDetailId.origin,
+              unitPrice: num(device.itemDetailId?.unitPrice),
+              quantity,
+              priceRate: num(
+                (device.itemDetailId?.unitPrice *
+                  device.itemDetailId?.vatRate *
+                  quantity) /
+                  100
+              ),
+              vatRate: num(device.itemDetailId?.vatRate),
+              cameraCount: data.cameraCount,
+              totalAmount: num(device.totalAmount),
+              category: device.categoryId?.name,
+              description: device.itemDetailId?.description,
+              note: device.itemDetailId?.note,
+            };
+          }),
+          licenses: licenses.map((license: any) => {
+            const matchedFeature = data.selectedFeatures?.find((sf) =>
+              license.selectedFeatures?.some(
+                (dsf: any) => dsf.feature === sf.feature
+              )
+            );
+            const quantity = num(
+              matchedFeature ? matchedFeature.pointCount : 1
+            );
+            return {
+              itemDetailId: license.itemDetailId._id,
+              fileId: license.itemDetailId.fileId,
+              name: license.itemDetailId?.name,
+              selectedFeatures: license.selectedFeatures ?? [],
+              unitPrice: num(license.itemDetailId?.unitPrice),
+              pointCount: matchedFeature ? matchedFeature.pointCount : 1,
+              vendor: license.itemDetailId.vendor,
+              origin: license.itemDetailId.origin,
+              quantity,
+              priceRate:
+                data.deploymentType === "Cloud"
+                  ? num(
+                      (license.itemDetailId?.unitPrice *
+                        license.itemDetailId?.vatRate *
+                        quantity) /
+                        100
+                    )
+                  : null,
+              vatRate: num(license.itemDetailId?.vatRate),
+              totalAmount: num(license.totalAmount),
+              category: license.categoryId?.name,
+              description: license.itemDetailId?.description,
+              note: license.itemDetailId?.note,
+            };
+          }),
+          costServers: costServers.map((costServer: any) => {
+            // Lấy tổng quantity từ licenseResponses
+            const totalLicenseQuantity = licenseResponses.reduce(
+              (acc, license) => acc + num(license.quantity),
+              0
+            );
+
+            const quantity =
+              data.iconKey === "securityAlert" ? 1 : totalLicenseQuantity;
+
+            return {
+              fileId: costServer.fileId,
+              name: costServer.name,
+              unitPrice: num(costServer.unitPrice),
+              priceRate:
+                data.deploymentType === "OnPremise"
+                  ? num(
+                      (costServer.unitPrice * costServer.vatRate * quantity) /
+                        100
+                    )
+                  : null,
+              vatRate: num(costServer.vatRate),
+              // Nếu iconKey là "securityAlert", quantity = 1, ngược lại dùng totalLicenseQuantity
+              quantity,
+              totalAmount: num(costServer.totalAmount) * quantity,
+              description: costServer.description,
+              note: costServer.itemDetailId?.note,
+            };
+          }),
           categoryTotal: grandTotal,
         },
       ],
@@ -353,66 +493,6 @@ export class QuotationRepository {
     });
 
     const savedQuotation = await newQuotation.save();
-
-    // 7) Format response
-    const deviceResponses: QuotationItemResponse[] = devices.map(
-      (device: any) => {
-        const matchedFeature = data.selectedFeatures?.find((sf) =>
-          device.selectedFeatures?.some(
-            (dsf: any) => dsf.feature === sf.feature
-          )
-        );
-        return {
-          itemDetailId: device.itemDetailId._id,
-          name: device.itemDetailId?.name,
-          selectedFeatures: device.selectedFeatures ?? [],
-          pointCount: matchedFeature
-            ? matchedFeature.pointCount
-            : data.pointCount ?? 0,
-          unitPrice: num(device.itemDetailId?.unitPrice),
-          quantity: num(device.itemDetailId?.quantity),
-          vatRate: num(device.itemDetailId?.vatRate),
-          totalAmount: num(device.totalAmount),
-          category: device.categoryId?.name,
-          description: device.itemDetailId?.description,
-        };
-      }
-    );
-
-    const costServerResponses: CostServerResponse[] = costServers.map(
-      (costServer: any) => ({
-        name: costServer.name,
-        unitPrice: num(costServer.unitPrice),
-        vatRate: num(costServer.vatRate),
-        quantity: num(costServer.quantity),
-        totalAmount: num(costServer.totalAmount),
-        description: costServer.description,
-      })
-    );
-
-    const licenseResponses: QuotationItemResponse[] = licenses.map(
-      (license: any) => {
-        const matchedFeature = data.selectedFeatures?.find((sf) =>
-          license.selectedFeatures?.some(
-            (dsf: any) => dsf.feature === sf.feature
-          )
-        );
-        return {
-          itemDetailId: license.itemDetailId._id,
-          name: license.itemDetailId?.name,
-          selectedFeatures: license.selectedFeatures ?? [],
-          unitPrice: num(license.itemDetailId?.unitPrice),
-          pointCount: matchedFeature
-            ? matchedFeature.pointCount
-            : data.pointCount ?? 0,
-          quantity: num(license.itemDetailId?.quantity),
-          vatRate: num(license.itemDetailId?.vatRate),
-          totalAmount: num(license.totalAmount),
-          category: license.categoryId?.name,
-          description: license.itemDetailId?.description,
-        };
-      }
-    );
 
     return {
       quotationId: savedQuotation._id,

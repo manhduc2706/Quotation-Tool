@@ -10,6 +10,7 @@ import { IItemDetail, ItemDetail } from "../models/ItemDetail";
 export interface CreateDeviceData {
   categoryId: Types.ObjectId;
   itemDetailId: Types.ObjectId;
+  deviceType: string;
   selectedFeatures?: AdminSelectedFeature[]; // Cập nhật type
 }
 
@@ -33,6 +34,7 @@ export class DeviceRepository {
     const newDevice = new DeviceModel({
       categoryId: data.categoryId,
       itemDetailId: data.itemDetailId,
+      deviceType: data.deviceType,
       selectedFeatures: data.selectedFeatures ?? [],
       totalAmount,
     });
@@ -78,17 +80,15 @@ export class DeviceRepository {
 
     // Tính lại totalAmount nếu có thay đổi
 
-      const existing = await this.findById(id);
-      if (existing) {
-        // Cần populate itemDetail để tính toán
-        const itemDetail = existing.itemDetailId as any;
-        if (itemDetail) {
-          updateData.totalAmount =
-            itemDetail.unitPrice *
-              (1 + itemDetail.vatRate) ;
-        }
+    const existing = await this.findById(id);
+    if (existing) {
+      // Cần populate itemDetail để tính toán
+      const itemDetail = existing.itemDetailId as any;
+      if (itemDetail) {
+        updateData.totalAmount =
+          itemDetail.unitPrice * (1 + itemDetail.vatRate);
       }
-    
+    }
 
     return await DeviceModel.findByIdAndUpdate(id, updateData, {
       new: true,

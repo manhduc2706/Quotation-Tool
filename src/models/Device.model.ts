@@ -7,6 +7,7 @@ export interface AdminSelectedFeature {
 
 export interface IDevice {
   categoryId: Types.ObjectId;
+  deviceType: string;
   itemDetailId: Types.ObjectId;
   selectedFeatures?: AdminSelectedFeature[]; // Sử dụng AdminSelectedFeature
   totalAmount: number;
@@ -21,6 +22,7 @@ const AdminSelectedFeatureSchema = new Schema<AdminSelectedFeature>(
 
 const DeviceSchema = new Schema<IDevice>({
   categoryId: { type: Schema.Types.ObjectId, ref: "Category", required: true },
+  deviceType: {type: String, required: true},
   itemDetailId: {
     type: Schema.Types.ObjectId,
     ref: "ItemDetail",

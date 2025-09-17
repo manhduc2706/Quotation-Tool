@@ -1,8 +1,10 @@
+import { FileModel, IFile } from "../models/File.model";
 import { IItemDetail } from "../models/ItemDetail";
 import {
   CreateItemDetailData,
   ItemDetailRepository,
 } from "../repositories/ItemDetail.repository";
+import { CreateFile } from "../types/quotation";
 
 export class ItemDetailService {
   private itemDetailRepository: ItemDetailRepository;
@@ -121,4 +123,5 @@ export class ItemDetailService {
     }
     return await this.itemDetailRepository.searchByName(name);
   }
+
 }

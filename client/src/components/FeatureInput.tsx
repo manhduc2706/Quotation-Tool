@@ -1,6 +1,6 @@
 import { useState } from "react";
 import LocationInput from "./LocationInput";
-import { SelectedFeature } from "../pages/Home";
+import { SelectedFeature } from "../types";
 
 interface FeatureInputProps {
   features: string[];
@@ -30,18 +30,18 @@ export default function FeatureInput({
 
   return (
     <div>
-      <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
         {featureData.map((item, index) => {
           const isChecked = item.pointCount > 0;
 
           return (
             <div
               key={index}
-              className={`grid grid-cols-2 gap-4 items-stretch border rounded-md p-4 transition
-                ${isChecked ? "border-[#0F4FAF] bg-blue-50" : "border-gray-300"}
-              `}
+              className={`flex flex-row justify-between items-center border rounded-md p-4 transition
+    ${isChecked ? "border-[#0F4FAF] bg-blue-50" : "border-gray-300"}
+  `}
             >
-              {/* Ô tính năng */}
+              {/* Ô tính năng (trái) */}
               <div className="flex items-center">
                 <label className="font-medium text-gray-900 flex items-center space-x-3 cursor-pointer">
                   {/* Checkbox custom */}
@@ -84,7 +84,7 @@ export default function FeatureInput({
                 </label>
               </div>
 
-              {/* Ô vị trí */}
+              {/* Ô vị trí (phải) */}
               <div className="flex items-center">
                 <LocationInput
                   value={item.pointCount === 0 ? null : item.pointCount}

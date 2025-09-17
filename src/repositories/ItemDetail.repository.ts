@@ -8,10 +8,10 @@ export interface CreateItemDetailData {
   origin: string;
   unitPrice: number;
   vatRate?: number;
-  imageUrl: string;
   quantity: number;
   description: string;
   developmentType: "Cloud" | "OnPremise";
+  fileId: Types.ObjectId;
 }
 
 export class ItemDetailRepository {
@@ -28,9 +28,9 @@ export class ItemDetailRepository {
       origin: data.origin, //Xuất xứ
       unitPrice: data.unitPrice, //Giá bán lẻ
       vatRate: data.vatRate, //Thuế suất
-      imageUrl: data.imageUrl,
       description: data.description,
       quantity: data.quantity, //Số lượng mua;
+      fileId: data.fileId,
     });
     return await newItemDetail.save();
   }

@@ -8,25 +8,31 @@ export interface IItemDetail {
   origin: string; //Xuất xứ
   unitPrice: number; //Giá bán lẻ
   vatRate: number; //Thuế suất
-  imageUrl?: string;
-  description: string;
+  description: string; //Thông số kỹ thuật
+  note?: string; //Ghi chú
   quantity: number; //Số lượng mua
+  fileId?: Types.ObjectId;
 }
 
 const ItemDetailSchema = new Schema<IItemDetail>(
   {
     name: { type: String, required: true },
-    imageUrl: { type: String, required: true },
     vendor: { type: String, required: true },
     origin: { type: String, required: true },
     unitPrice: { type: Number, required: true },
     vatRate: { type: Number, required: true },
     quantity: { type: Number, default: 1 },
     description: { type: String, required: true },
+    note: { type: String, required: false },
     developmentType: {
       type: String,
       required: true,
       enum: ["Cloud", "OnPremise"],
+    },
+    fileId: {
+      type: Schema.Types.ObjectId,
+      required: false,
+      ref: "File",
     },
   },
   {

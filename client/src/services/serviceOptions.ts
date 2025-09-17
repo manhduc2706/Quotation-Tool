@@ -1,6 +1,5 @@
 import api from "./api";
 import { ServiceOption, ApiResponse } from "../types";
-import { response } from "express";
 
 export const serviceOptionsApi = {
   getServiceOptions: async (): Promise<ServiceOption[]> => {
