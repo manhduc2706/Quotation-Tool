@@ -3,7 +3,7 @@
 
 
 #deps
-node_modules
+node_modules/
 
 #data\minio
-data
+data/
