@@ -1,22 +1,18 @@
 services:
-  backend-seed:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    environment:
-      - MONGO_URI=mongodb://mongo:27017/backend-api
-    depends_on:
-      - mongoDb
-    command: npm run seed
-    volumes:
-      - .:/app
-
   mongoDb:
     image: mongo
+    container_name: c-cam-mongoDb
+    restart: unless-stopped
     ports:
       - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: c-cam
     volumes:
       - mongo-data:/data/db
+    networks:
+      - c-cam-network
 
   minio:
     image: minio/minio:latest

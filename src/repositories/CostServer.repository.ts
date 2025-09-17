@@ -8,6 +8,7 @@ export interface CreateCostServer {
   description?: string;
   quantity?: number;
   fileId: Types.ObjectId;
+  note: string | null;
 }
 
 export class CostServerRepository {
@@ -47,6 +48,18 @@ export class CostServerRepository {
       throw new Error("VAT phải là số trong khoảng từ 0 đến 100.");
     }
 
+    // Check trùng name + unitPrice
+    const existing = await CostServerModel.findOne({
+      name: data.name,
+      unitPrice: data.unitPrice,
+    });
+
+    if (existing) {
+      throw new Error(
+        `CostServer với tên "${data.name}" và giá "${data.unitPrice}" đã tồn tại.`
+      );
+    }
+
     // Tính tổng giá trị (totalAmount)
     const totalAmount = data.unitPrice * (1 + data.vatRate / 100);
 
@@ -58,6 +71,7 @@ export class CostServerRepository {
       description: data.description,
       totalAmount,
       fileId: data.fileId,
+      note: data.note || null,
     });
 
     return await newServer.save();

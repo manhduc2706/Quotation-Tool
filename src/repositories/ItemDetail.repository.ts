@@ -11,7 +11,8 @@ export interface CreateItemDetailData {
   quantity: number;
   description: string;
   developmentType: "Cloud" | "OnPremise";
-  fileId: Types.ObjectId;
+  fileId: Types.ObjectId | null;
+  note: string | null;
 }
 
 export class ItemDetailRepository {
@@ -30,7 +31,8 @@ export class ItemDetailRepository {
       vatRate: data.vatRate, //Thuế suất
       description: data.description,
       quantity: data.quantity, //Số lượng mua;
-      fileId: data.fileId,
+      fileId: data.fileId || null,
+      note: data.note || null,
     });
     return await newItemDetail.save();
   }

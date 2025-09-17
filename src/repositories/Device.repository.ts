@@ -28,6 +28,17 @@ export class DeviceRepository {
       throw new Error("ItemDetail not found");
     }
 
+    const existing = await DeviceModel.findOne({
+      categoryId: data.categoryId,
+      itemDetailId: data.itemDetailId,
+      selectedFeatures: data.selectedFeatures,
+      deviceType: data.deviceType,
+    });
+
+    if (existing) {
+      throw new Error("Dữ liệu đã được khởi tạo");
+    }
+
     const itemDetail = itemDetails[0]; // Lấy phần tử đầu tiên
     const totalAmount = itemDetail.unitPrice * (1 + itemDetail.vatRate / 100);
 

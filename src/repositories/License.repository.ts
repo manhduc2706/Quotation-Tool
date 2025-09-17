@@ -25,6 +25,17 @@ export class LicenseRepository {
       throw new Error("ItemDetail not found");
     }
 
+    const existing = await LicenseModel.findOne({
+      userLimit: data.userLimit,
+      categoryId: data.categoryId,
+      itemDetailId: data.itemDetailId,
+      selectedFeatures: data.selectedFeatures,
+    });
+
+    if (existing) {
+      throw new Error("Dữ liệu đã được khởi tạo");
+    }
+
     const itemDetail = itemDetails[0]; // Lấy phần tử đầu tiên
     const costServer = costServers[0];
     const totalAmount =

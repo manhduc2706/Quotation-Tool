@@ -4,3 +4,6 @@
 
 #deps
 node_modules
+
+#data\minio
+data

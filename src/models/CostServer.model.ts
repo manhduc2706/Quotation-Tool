@@ -9,6 +9,7 @@ export interface ICostServer {
   totalAmount: number;
   description?: string;
   fileId?: Types.ObjectId;
+  note?: string;
 }
 
 const CostServerSchema = new Schema<ICostServer>({
@@ -18,6 +19,7 @@ const CostServerSchema = new Schema<ICostServer>({
   quantity: { type: Number, required: false },
   totalAmount: { type: Number, required: true },
   description: { type: String, required: false },
+  note: {type: String, required: false},
   fileId: {
     type: Schema.Types.ObjectId,
     required: false,
