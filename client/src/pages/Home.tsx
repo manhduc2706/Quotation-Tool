@@ -12,7 +12,6 @@ import IconD from "../components/ui/iconD";
 import IconCalculator from "../components/ui/iconCalculator";
 import CameraCountInput from "../components/CameraCount";
 import { DownloadExcelButton } from "../components/DownloadExcel";
-import { excelApi } from "../services/excelApi";
 
 export default function Home() {
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);

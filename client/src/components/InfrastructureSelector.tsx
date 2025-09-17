@@ -1,4 +1,3 @@
-import { CloudIcon, ServerIcon } from "@heroicons/react/24/outline";
 import IconCloud from "./ui/iconCloud";
 import IconOnPremise from "./ui/iconOnPremise";
 

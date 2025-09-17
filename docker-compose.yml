@@ -31,6 +31,37 @@ services:
     networks:
       - c-cam-network
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: c-cam-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app      # mount code vào container
+      - /app/node_modules   # giữ node_modules trong container
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongoDb
+      - minio
+    networks:
+      - c-cam-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: c-cam-frontend
+    ports:
+      - "5173:5173" # nếu dev mode
+      # - "3000:80"  # nếu serve nginx
+    depends_on:
+      - backend
+    networks:
+      - c-cam-network
+
 networks:
   c-cam-network:
     driver: bridge

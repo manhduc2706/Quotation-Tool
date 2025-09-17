@@ -9,7 +9,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Create a stage for development dependencies and building
 FROM node:18-alpine AS build
 WORKDIR /app
-COPY package*.json ./
+COPY package*.json ./-
 RUN npm ci
 COPY . .
 RUN npm run build
